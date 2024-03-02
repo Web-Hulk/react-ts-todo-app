@@ -1,8 +1,14 @@
-import { uniqueId } from "lodash";
 import { lazy, useEffect, useState } from "react";
+import { addTodoItem } from "../../helpers/addTodoItem";
+import { deleteTodoItem } from "../../helpers/deleteTodoItem";
+import { editTodoItemMessage } from "../../helpers/editTodoItemMessage";
+import { filterActiveTodoItems } from "../../helpers/filterActiveTodoItems";
+import { filterTodoItemBy } from "../../helpers/filterTodoItemsBy";
+import { getInputValue } from "../../helpers/getInputValue";
+import { handleDarkMode } from "../../helpers/handleDarkMode";
+import { toggleTodoItemsStatus } from "../../helpers/toggleTodoItemsStatus";
 import { TodoItemType } from "../../types";
 import "./App.scss";
-import { handleDarkMode } from "../../helpers/handleDarkMode";
 
 const TodoItemsList = lazy(() => import("../TodoItemsList/TodoItemsList"));
 const TodoFooter = lazy(() => import("../TodoFooter"));
@@ -30,102 +36,60 @@ const App = () => {
       : localStorage.setItem("mode", JSON.stringify(false));
   }, []);
 
-  // const handleDarkMode = () => {
-  //   setIsDarkMode(!isDarkMode);
-
-  //   localStorage.setItem("mode", JSON.stringify(!isDarkMode));
-  // };
-
   const onDarkModeToggle = () => {
-    setIsDarkMode(handleDarkMode(isDarkMode));
+    const newMode = handleDarkMode(isDarkMode);
+
+    setIsDarkMode(newMode);
+    localStorage.setItem("mode", JSON.stringify(newMode));
   };
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setTodoItemMessage(e.target.value);
+    setTodoItemMessage(getInputValue(e));
   };
 
-  const addTodoItem = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    const todoItem = {
-      id: uniqueId(),
-      message: todoItemMessage,
-      active: true,
-      completed: false,
-    };
+  const handleDeleteItem = (id: string) => {
+    const newTodoItems = deleteTodoItem(todoItems, id);
 
-    const updateItems = [...todoItems, todoItem];
-
-    if (e.key === "Enter" && todoItemMessage !== "") {
-      setTodoItems(updateItems);
-      setTodoItemMessage("");
-
-      localStorage.setItem("todos", JSON.stringify(updateItems));
-    }
+    setTodoItems(newTodoItems);
+    localStorage.setItem("todos", JSON.stringify(newTodoItems));
   };
 
-  const deleteItem = (id: string) => {
-    const filterTodoItems = todoItems.filter((item) => item.id !== id);
+  const handleRemoveCompletedItems = () => {
+    const activeTodoItems = filterActiveTodoItems(todoItems);
 
-    setTodoItems(filterTodoItems);
-    localStorage.setItem("todos", JSON.stringify(filterTodoItems));
+    setTodoItems(activeTodoItems);
+    localStorage.setItem("todos", JSON.stringify(activeTodoItems));
   };
 
   const handleCheckbox = (id: string) => {
-    const updateTodoItem = todoItems.map((item) => {
-      if (item.id === id) {
-        return { ...item, active: !item.active, completed: !item.completed };
-      }
-
-      return item;
-    });
+    const updateTodoItem = toggleTodoItemsStatus(todoItems, id);
 
     setTodoItems(updateTodoItem);
     localStorage.setItem("todos", JSON.stringify(updateTodoItem));
   };
 
-  const removeCompletedItems = () => {
-    const filterCompletedItems = todoItems.filter(
-      (item) => item.completed === false
-    );
+  const handleItemEdit = (e: React.FocusEvent<HTMLSpanElement>, id: string) => {
+    const updatedTodoItems = editTodoItemMessage(e, todoItems, id);
 
-    setTodoItems(filterCompletedItems);
-    localStorage.setItem("todos", JSON.stringify(filterCompletedItems));
+    setTodoItems(updatedTodoItems);
+    localStorage.setItem("todos", JSON.stringify(updatedTodoItems));
   };
 
-  const filterTodoItems = (name: string) => {
-    const todoItemsFromLocalStorage = JSON.parse(
-      localStorage.getItem("todos") as string
-    );
-
-    let filterTodoItemsBasedOnName: TodoItemType[] = [];
-
-    if (name === "active") {
-      filterTodoItemsBasedOnName = todoItemsFromLocalStorage.filter(
-        (item: TodoItemType) => item.active === true
-      );
-    } else if (name === "completed") {
-      filterTodoItemsBasedOnName = todoItemsFromLocalStorage.filter(
-        (item: TodoItemType) => item.completed === true
-      );
-    } else {
-      filterTodoItemsBasedOnName = todoItemsFromLocalStorage;
-    }
+  const handleFilterTodoItemByName = (name: string) => {
+    const filterTodoItemsBasedOnName = filterTodoItemBy(name);
 
     setTodoItems(filterTodoItemsBasedOnName);
   };
 
-  const editItem = (e: React.FocusEvent<HTMLSpanElement>, id: string) => {
-    const newMessage = e.currentTarget.textContent || "";
+  const handleAddTodoItem = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && todoItemMessage !== "") {
+      const newItem = addTodoItem(todoItemMessage, todoItems);
 
-    const updateTodoItem = todoItems.map((item) => {
-      if (item.id === id) {
-        return { ...item, message: newMessage };
-      }
+      setTodoItems(newItem);
+      setTodoItemMessage("");
 
-      return item;
-    });
-
-    setTodoItems(updateTodoItem);
-    localStorage.setItem("todos", JSON.stringify(updateTodoItem));
+      localStorage.setItem("todos", JSON.stringify(newItem));
+    }
   };
 
   return (
@@ -135,20 +99,20 @@ const App = () => {
       <TodoInput
         todoItemMessage={todoItemMessage}
         handleInput={handleInput}
-        addTodoItem={addTodoItem}
+        addTodoItem={handleAddTodoItem}
       />
 
       <TodoItemsList
         todoItems={todoItems}
         handleCheckbox={handleCheckbox}
-        editItem={editItem}
-        deleteItem={deleteItem}
+        editItem={handleItemEdit}
+        deleteItem={handleDeleteItem}
       />
 
       <TodoFooter
         todoItems={todoItems}
-        filterTodoItems={filterTodoItems}
-        removeCompletedItems={removeCompletedItems}
+        filterTodoItems={handleFilterTodoItemByName}
+        removeCompletedItems={handleRemoveCompletedItems}
       />
     </div>
   );
