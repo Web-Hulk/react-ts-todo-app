@@ -8,7 +8,6 @@ import { getInputValue } from "../../helpers/getInputValue";
 import { handleDarkMode } from "../../helpers/handleDarkMode";
 import { toggleTodoItemsStatus } from "../../helpers/toggleTodoItemsStatus";
 import { TodoItemType } from "../../types";
-import "./App.scss";
 
 const TodoItemsList = lazy(() => import("../TodoItemsList/TodoItemsList"));
 const TodoFooter = lazy(() => import("../TodoFooter"));
@@ -47,18 +46,15 @@ const App = () => {
     setTodoItemMessage(getInputValue(e));
   };
 
-  const handleDeleteItem = (id: string) => {
-    const newTodoItems = deleteTodoItem(todoItems, id);
+  const handleAddTodoItem = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && todoItemMessage !== "") {
+      const newItem = addTodoItem(todoItemMessage, todoItems);
 
-    setTodoItems(newTodoItems);
-    localStorage.setItem("todos", JSON.stringify(newTodoItems));
-  };
+      setTodoItems(newItem);
+      setTodoItemMessage("");
 
-  const handleRemoveCompletedItems = () => {
-    const activeTodoItems = filterActiveTodoItems(todoItems);
-
-    setTodoItems(activeTodoItems);
-    localStorage.setItem("todos", JSON.stringify(activeTodoItems));
+      localStorage.setItem("todos", JSON.stringify(newItem));
+    }
   };
 
   const handleCheckbox = (id: string) => {
@@ -75,21 +71,24 @@ const App = () => {
     localStorage.setItem("todos", JSON.stringify(updatedTodoItems));
   };
 
+  const handleDeleteItem = (id: string) => {
+    const newTodoItems = deleteTodoItem(todoItems, id);
+
+    setTodoItems(newTodoItems);
+    localStorage.setItem("todos", JSON.stringify(newTodoItems));
+  };
+
   const handleFilterTodoItemByName = (name: string) => {
     const filterTodoItemsBasedOnName = filterTodoItemBy(name);
 
     setTodoItems(filterTodoItemsBasedOnName);
   };
 
-  const handleAddTodoItem = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && todoItemMessage !== "") {
-      const newItem = addTodoItem(todoItemMessage, todoItems);
+  const handleRemoveCompletedItems = () => {
+    const activeTodoItems = filterActiveTodoItems(todoItems);
 
-      setTodoItems(newItem);
-      setTodoItemMessage("");
-
-      localStorage.setItem("todos", JSON.stringify(newItem));
-    }
+    setTodoItems(activeTodoItems);
+    localStorage.setItem("todos", JSON.stringify(activeTodoItems));
   };
 
   return (
